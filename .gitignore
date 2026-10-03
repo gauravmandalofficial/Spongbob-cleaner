@@ -18,3 +18,5 @@ coverage/
 .DS_Store
 *.zip
 *.exe
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/

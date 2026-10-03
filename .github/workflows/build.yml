@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
       - run: flutter config --enable-macos-desktop
@@ -37,9 +37,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
       - run: flutter config --enable-windows-desktop
       - run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - run: flutter pub get
