@@ -42,13 +42,12 @@ jobs:
           cache: true
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
-      - name: Install Visual Studio Build Tools
-        run: |
-          choco install visualstudio2022buildtools -y --quiet --wait --package-args "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows.11.SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --quiet --wait --norestart"
       - name: Create Windows Project
         run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - name: Install dependencies
         run: flutter pub get
+      - name: Flutter Doctor
+        run: flutter doctor -v
       - name: Build Windows
         run: flutter build windows --release
       - uses: actions/upload-artifact@v4
