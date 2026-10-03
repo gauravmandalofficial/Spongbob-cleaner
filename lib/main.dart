@@ -132,31 +132,72 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
       final bytes = await File(path).readAsBytes();
       final exifData = await readExifFromBytes(bytes);
       final decoded = img.decodeImage(bytes);
-      String text = 'File: $path\n';
-      text += 'Size: ${_formatSize(bytes.length)}\n';
+
+      final Map<String, Map<String, String>> categories = {
+        '📸 EXIF Camera Metadata': {},
+        '📍 GPS & Location Information': {},
+        '🖼 TIFF & Hardware Data': {},
+        '📝 IPTC Copyright & Creator Data': {},
+        '🎨 Color Profile / Color Model': {},
+      };
+
+      exifData.forEach((key, value) {
+        final k = key.toLowerCase();
+        if (k.contains('gps')) {
+          categories['📍 GPS & Location Information']![key] = value.toString();
+        } else if (k.contains('exif')) {
+          categories['📸 EXIF Camera Metadata']![key] = value.toString();
+        } else if (k.contains('image') || k.contains('software') || k.contains('make') || k.contains('model')) {
+          categories['🖼 TIFF & Hardware Data']![key] = value.toString();
+        } else if (k.contains('iptc') || k.contains('copyright')) {
+          categories['📝 IPTC Copyright & Creator Data']![key] = value.toString();
+        } else {
+          categories['🖼 TIFF & Hardware Data']![key] = value.toString();
+        }
+      });
+
       if (decoded != null) {
-        text += 'Dimensions: ${decoded.width} x ${decoded.height}\n';
+        categories['🎨 Color Profile / Color Model']!['Color Space'] = decoded.numChannels == 4 ? 'RGBA' : 'RGB';
+        categories['🎨 Color Profile / Color Model']!['Dimensions'] = '${decoded.width} x ${decoded.height}';
       }
-      text += '\n=== EXIF ===\n';
-      if (exifData.isEmpty) {
-        text += 'No EXIF metadata found\n';
-      } else {
-        exifData.forEach((k, v) => text += '$k: $v\n');
-      }
+
       if (!mounted) return;
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: Text('Metadata Inspector'),
+          title: Text('Metadata Inspector - ${p.basename(path)}'),
           content: SizedBox(
-            width: 600,
-            height: 400,
-            child: SingleChildScrollView(
-              child: SelectableText(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-            ),
+            width: 650,
+            height: 500,
+            child: exifData.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+                      SizedBox(height: 12),
+                      Text('No metadata tags found in this image.', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )
+              : ListView(
+                  children: categories.entries.where((e) => e.value.isNotEmpty).map((entry) {
+                    return ExpansionTile(
+                      initiallyExpanded: true,
+                      title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                      children: entry.value.entries.map((item) {
+                        return ListTile(
+                          title: Text(item.key, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          subtitle: SelectableText(item.value, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                          dense: true,
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
+                ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
           ],
         ),
       );
@@ -211,6 +252,7 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
           _processedCount++;
         });
       } catch (e) {
+        print("ERROR processing ${item.path}: $e");
         setState(() {
           item.status = 'Error';
           item.errorMsg = e.toString();
@@ -233,10 +275,20 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
         backgroundColor: Colors.amber.shade300,
       ),
       body: DropTarget(
-        onDragEntered: (_) => setState(() => _isDragging = true),
-        onDragExited: (_) => setState(() => _isDragging = false),
+        onDragEntered: (_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isDragging = true);
+          });
+        },
+        onDragExited: (_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isDragging = false);
+          });
+        },
         onDragDone: (detail) {
-          setState(() => _isDragging = false);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isDragging = false);
+          });
           final paths = detail.files.map((f) => f.path).toList();
           for (final path in paths) {
             final entity = FileSystemEntity.typeSync(path);
@@ -368,24 +420,28 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Text(_statusMessage()),
-                          const Spacer(),
-                          if (_isProcessing) LinearProgressIndicator(value: progress),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: _isProcessing || _queue.isEmpty ? null : _processQueue,
-                            icon: _isProcessing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cleaning_services),
-                            label: Text(_isProcessing ? 'Processing...' : 'Strip Metadata'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber.shade400,
-                              foregroundColor: Colors.black87,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Row(
+                          children: [
+                            Expanded(child: Text(_statusMessage(), overflow: TextOverflow.ellipsis)),
+                            if (_isProcessing) ...[
+                              const SizedBox(width: 12),
+                              SizedBox(width: 100, child: LinearProgressIndicator(value: progress)),
+                            ],
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: _isProcessing || _queue.isEmpty ? null : _processQueue,
+                              icon: _isProcessing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cleaning_services),
+                              label: Text(_isProcessing ? 'Cleaning...' : 'Strip Metadata'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber.shade400,
+                                foregroundColor: Colors.black87,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
