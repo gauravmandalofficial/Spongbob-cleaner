@@ -25,7 +25,7 @@ jobs:
       - run: flutter build macos --release
       - run: |
           cd build/macos/Build/Products/Release
-          zip -r SpongebobCleaner-macOS.zip spongebob_cleaner.app
+          zip -r SpongebobCleaner-macOS.zip *.app
       - uses: actions/upload-artifact@v4
         with:
           name: macOS
@@ -33,6 +33,8 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    env:
+      CMAKE_GENERATOR: "Visual Studio 17 2022"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -49,7 +51,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: build/windows/x64/runner/Release/spongebob_cleaner.exe
+          path: build/windows/x64/runner/Release/*.exe
 
   release:
     needs: [build-macos, build-windows]
