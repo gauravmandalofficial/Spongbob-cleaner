@@ -270,7 +270,6 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
                             border: Border.all(
                               color: _isDragging ? Colors.amber : Colors.grey.shade400,
                               width: 2,
-                              style: BorderStyle.dashed,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
