@@ -46,14 +46,14 @@ jobs:
         run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - name: Install dependencies
         run: flutter pub get
-      - name: Flutter Doctor
-        run: flutter doctor -v
       - name: Build Windows
         run: flutter build windows --release
+      - name: Compress Windows Build
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: build/windows/x64/runner/Release/*.exe
+          path: SpongebobCleaner-Windows.zip
 
   release:
     needs: [build-macos, build-windows]
@@ -69,7 +69,7 @@ jobs:
           tag_name: latest
           files: |
             artifacts/macOS/SpongebobCleaner-macOS.zip
-            artifacts/windows/spongebob_cleaner.exe
+            artifacts/windows/SpongebobCleaner-Windows.zip
           generate_release_notes: true
           make_latest: true
         env:
