@@ -1,0 +1,25 @@
+name: metadata_cleaner
+description: Cross-platform desktop app to strip EXIF, GPS, IPTC metadata from images.
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  desktop_drop: ^4.10.1
+  file_selector: ^0.10.1
+  path: ^1.9.0
+  image: ^4.5.4
+  exif: ^3.3.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
