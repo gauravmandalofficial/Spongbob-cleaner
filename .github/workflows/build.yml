@@ -42,18 +42,6 @@ jobs:
           cache: true
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
-        
-      # Using bash ensures the old files are forcefully deleted without PowerShell errors
-      - name: Hard Clean Old Build Files
-        shell: bash
-        run: |
-          flutter clean
-          rm -rf windows
-          rm -rf build
-          rm -rf .dart_tool
-          
-      - name: Create Windows Project
-        run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - name: Install dependencies
         run: flutter pub get
       - name: Build Windows
