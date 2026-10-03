@@ -32,31 +32,40 @@ jobs:
           path: build/macos/Build/Products/Release/SpongebobCleaner-macOS.zip
 
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
+
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
-      - name: Regenerate Windows Scaffolding for VS 2022
-        shell: bash
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Clean and Re-scaffold Windows
+        shell: pwsh
         run: |
-          rm -rf windows
+          if (Test-Path windows) { Remove-Item -Recurse -Force windows }
           flutter create --project-name spongebob_cleaner --platforms=windows .
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build Windows
-        run: flutter build windows --release
+        shell: pwsh
+        run: |
+          flutter build windows --release -- -G "Visual Studio 17 2022" -A x64
 
       - name: Compress Windows Build
-        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
