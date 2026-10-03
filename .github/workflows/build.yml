@@ -35,19 +35,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Sets up Visual Studio 2022 environment paths so CMake finds the compiler immediately
-      - name: Set up Visual Studio Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
-
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
+
+      - name: Regenerate Windows Scaffolding for VS 2022
+        shell: bash
+        run: |
+          rm -rf windows
+          flutter create --project-name spongebob_cleaner --platforms=windows .
 
       - name: Install dependencies
         run: flutter pub get
