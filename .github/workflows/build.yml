@@ -31,7 +31,7 @@ jobs:
           name: macOS
           path: build/macos/Build/Products/Release/SpongebobCleaner-macOS.zip
 
-    build-windows:
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +42,8 @@ jobs:
           cache: true
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
-        
-      # This forces Flutter to generate modern CMake files for windows-latest
       - name: Clean old Windows files
         run: Remove-Item -Recurse -Force windows -ErrorAction SilentlyContinue
-        
       - name: Create Windows Project
         run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - name: Install dependencies
@@ -59,7 +56,6 @@ jobs:
         with:
           name: windows
           path: SpongebobCleaner-Windows.zip
-
 
   release:
     needs: [build-macos, build-windows]
