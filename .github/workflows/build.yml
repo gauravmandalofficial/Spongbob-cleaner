@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-macos:
     runs-on: macos-latest
@@ -17,16 +20,16 @@ jobs:
           channel: 'stable'
           cache: true
       - run: flutter config --enable-macos-desktop
-      - run: flutter create --platforms=macos .
+      - run: flutter create --project-name spongebob_cleaner --platforms=macos .
       - run: flutter pub get
       - run: flutter build macos --release
       - run: |
           cd build/macos/Build/Products/Release
-          zip -r MetadataCleaner-macOS.zip MetadataCleaner.app
+          zip -r SpongebobCleaner-macOS.zip spongebob_cleaner.app
       - uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: build/macos/Build/Products/Release/MetadataCleaner-macOS.zip
+          path: build/macos/Build/Products/Release/SpongebobCleaner-macOS.zip
 
   build-windows:
     runs-on: windows-latest
@@ -38,13 +41,13 @@ jobs:
           channel: 'stable'
           cache: true
       - run: flutter config --enable-windows-desktop
-      - run: flutter create --platforms=windows .
+      - run: flutter create --project-name spongebob_cleaner --platforms=windows .
       - run: flutter pub get
       - run: flutter build windows --release
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: build/windows/x64/runner/Release/MetadataCleaner.exe
+          path: build/windows/x64/runner/Release/spongebob_cleaner.exe
 
   release:
     needs: [build-macos, build-windows]
@@ -59,8 +62,8 @@ jobs:
         with:
           tag_name: latest
           files: |
-            artifacts/macOS/MetadataCleaner-macOS.zip
-            artifacts/windows/MetadataCleaner.exe
+            artifacts/macOS/SpongebobCleaner-macOS.zip
+            artifacts/windows/spongebob_cleaner.exe
           generate_release_notes: true
           make_latest: true
         env:

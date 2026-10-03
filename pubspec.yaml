@@ -1,4 +1,4 @@
-name: metadata_cleaner
+name: spongebob_cleaner
 description: Cross-platform desktop app to strip EXIF, GPS, IPTC metadata from images.
 publish_to: 'none'
 version: 1.0.0+1
