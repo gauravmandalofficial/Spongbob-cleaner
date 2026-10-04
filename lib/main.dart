@@ -217,14 +217,13 @@ void _addFiles(List<String> paths) {
         }
 
         final overwrite = outPath == _queue[i].path; // option 1: overwrite original
-        if (overwrite && !await _confirmOverwrite(outPath)) {
-          setState(() {
-            _queue[i].status = 'Skipped';
-          });
-          continue;
+        if (overwrite) {
+          final tempFile = File('$outPath.tmp');
+          await tempFile.writeAsBytes(cleanedBytes);
+          await tempFile.rename(outPath);
+        } else {
+          await File(outPath).writeAsBytes(cleanedBytes);
         }
-
-        await File(outPath).writeAsBytes(cleanedBytes);
         setState(() {
           _queue[i].status = 'Cleaned';
         });
@@ -242,7 +241,7 @@ void _addFiles(List<String> paths) {
 
   /// Show confirmation dialog before clearing the queue.
   Future<void> _confirmClearQueue() async {
-    if (!_queue.isEmpty) {
+    if (_queue.isNotEmpty) {
       final confirmed = await showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -264,31 +263,6 @@ void _addFiles(List<String> paths) {
         setState(() => _queue.clear());
       }
     }
-  }
-
-  /// Show confirmation dialog before overwriting a file.
-  Future<bool> _confirmOverwrite(String path) async {
-    final file = File(path);
-    if (!await file.exists()) return true; // no existing file, allow
-
-    final confirmed = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Overwrite File'),
-        content: Text('Replace existing file: ${p.basename(path)}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep Original'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Overwrite'),
-          ),
-        ],
-      ),
-    );
-    return confirmed == true;
   }
 
   @override

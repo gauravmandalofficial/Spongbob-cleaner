@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
+import 'package:exif/exif.dart';
 
 class ImageMetadataProcessor {
   static Future<Uint8List> processFile(
@@ -9,59 +10,77 @@ class ImageMetadataProcessor {
     bool stripGps,
     bool stripIcc,
   ) async {
-    final img.Image? image = img.decodeImage(bytes);
+    // 1. Verification Logging: Check BEFORE
+    final beforeTags = await readExifFromBytes(bytes);
+    print('BEFORE stripping: ${beforeTags.length} tags found.');
+
+    img.Image? image = img.decodeImage(bytes);
     if (image == null) {
+      print('FAILED to decode image.');
       return bytes;
     }
 
-    final lower = extension.toLowerCase().replaceFirst('.', '');
+    // 2. Complete Metadata Stripping
+    // Bake orientation so image doesn't rotate when EXIF removed
+    image = img.bakeOrientation(image);
 
-    // Strip GPS tags from image metadata if requested
-    final strippedImage = _stripGpsTags(image, stripGps);
+    // Clear EXIF and text metadata objects
+    if (stripExif) {
+      image.exif.clear();
+      if (image.textData != null) {
+        image.textData!.clear();
+      }
+    }
 
-    // Strip ICC/color profile if requested
-    final processedImage = _stripIccProfile(strippedImage, stripIcc);
+    if (stripIcc) {
+      image.iccProfile = null;
+    }
 
-    switch (lower) {
-      case 'jpg':
-      case 'jpeg':
-        return Uint8List.fromList(img.encodeJpg(processedImage, quality: 95));
+    // 3. Create fresh pixel-only image to guarantee zero leftover headers
+    final cleanImage = img.Image.from(image, noAnimation: true);
+    if (stripExif) {
+      cleanImage.exif.clear();
+      if (cleanImage.textData != null) {
+        cleanImage.textData!.clear();
+      }
+    }
+    if (stripIcc) {
+      cleanImage.iccProfile = null;
+    }
+
+    final ext = extension.toLowerCase();
+    Uint8List result;
+
+    // 4. Handle HEIC / Unsupported by converting to clean JPG
+    switch (ext) {
       case 'png':
-        return Uint8List.fromList(img.encodePng(processedImage));
+        result = Uint8List.fromList(img.encodePng(cleanImage));
+        break;
       case 'webp':
-        return Uint8List.fromList(img.encodeWebP(processedImage, quality: 95));
+        result = Uint8List.fromList(img.encodeWebP(cleanImage, quality: 95));
+        break;
       case 'tiff':
       case 'tif':
-        return Uint8List.fromList(img.encodeTiff(processedImage));
+        result = Uint8List.fromList(img.encodeTiff(cleanImage));
+        break;
+      case 'jpg':
+      case 'jpeg':
       case 'heic':
       case 'heif':
-        // HEIC/HEIF: decode, strip metadata, re-encode as JPEG since
-        // the image package does not support HEIC encoding.
-        // Preserve visual quality by using reasonable quality setting.
-        return Uint8List.fromList(img.encodeJpg(processedImage, quality: 95));
       default:
-        return bytes;
+        // Convert HEIC/HEIF to clean JPG
+        result = Uint8List.fromList(img.encodeJpg(cleanImage, quality: 95));
+        break;
     }
-  }
 
-  /// Strip GPS coordinate tags from image EXIF data.
-  static img.Image _stripGpsTags(img.Image image, bool strip) {
-    if (!strip) return image;
+    // 5. Verification Logging: Check AFTER
+    final afterTags = await readExifFromBytes(result);
+    print('AFTER stripping: ${afterTags.length} tags found.');
 
-    // The image package does not provide direct GPS tag manipulation.
-    // As a best-effort approach, we return the image unchanged.
-    // Full GPS stripping would require a dedicated EXIF library.
-    return image;
-  }
+    if (afterTags.isNotEmpty) {
+      print('WARNING: Some tags remained: ${afterTags.keys.take(5).toList()}');
+    }
 
-  /// Strip ICC color profile from image data.
-  static img.Image _stripIccProfile(img.Image image, bool strip) {
-    if (!strip) return image;
-
-    // The image package encodes without ICC profile by default when
-    // re-encoding. For direct pixel data, the profile is typically
-    // stripped during format encoding. Return as-is; the encode
-    // call below will handle profile stripping.
-    return image;
+    return result;
   }
 }

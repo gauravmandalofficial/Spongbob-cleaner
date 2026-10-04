@@ -4,7 +4,12 @@
       "Bash(flutter clean *)",
       "Bash(flutter pub *)",
       "Bash(flutter run *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(export HOME=/tmp/claude)",
+      "Bash(export TMPDIR=/tmp/claude)",
+      "Bash(export FLUTTER_USER_HOME=$HOME/.flutter)",
+      "Bash(export PUB_CACHE=$HOME/.pub-cache)",
+      "Bash(/opt/homebrew/bin/flutter --version)"
     ]
   }
 }
