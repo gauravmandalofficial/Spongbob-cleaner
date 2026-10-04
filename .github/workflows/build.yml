@@ -21,6 +21,7 @@ jobs:
           cache: true
       - run: flutter config --enable-macos-desktop
       - run: flutter create --project-name spongebob_cleaner --platforms=macos .
+      - run: mkdir -p assets
       - run: flutter pub get
       - run: flutter build macos --release
       - run: |
@@ -36,40 +37,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Setup official Microsoft MSBuild & Visual Studio registration
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # 2. Setup Flutter
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
-      # 3. Explicitly tell Flutter where Visual Studio 2022 is located
       - name: Configure Flutter
         shell: pwsh
         run: |
           flutter config --enable-windows-desktop
           flutter doctor -v
 
-      # 4. Generate native Windows files for the detected environment
-      - name: Scaffold Windows
+      - name: Scaffold Windows & Ensure Assets Directory
         shell: pwsh
         run: |
           if (Test-Path windows) { Remove-Item -Recurse -Force windows }
           flutter create --project-name spongebob_cleaner --platforms=windows .
+          if (-not (Test-Path assets)) { New-Item -ItemType Directory -Path assets }
 
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. Build Windows App
-      - name: Build Windows
+      - name: Build Windows App
         shell: cmd
         run: flutter build windows --release
 
-      # 6. Archive and upload
       - name: Compress Windows Build
         shell: pwsh
         run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
