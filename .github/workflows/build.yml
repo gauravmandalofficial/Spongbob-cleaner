@@ -2,8 +2,6 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -90,8 +88,8 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            artifacts/macOS/SpongebobCleaner-macOS.zip
-            artifacts/windows/SpongebobCleaner-Windows.zip
+            artifacts/macOS/SpongeBob-by-GM-macOS.zip
+            artifacts/windows/SpongeBob-by-GM-Windows.zip
           generate_release_notes: true
           make_latest: true
         env:
