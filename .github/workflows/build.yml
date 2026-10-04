@@ -26,11 +26,11 @@ jobs:
       - run: flutter build macos --release
       - run: |
           cd build/macos/Build/Products/Release
-          zip -r SpongebobCleaner-macOS.zip *.app
+          zip -r "SpongeBob-by-GM-macOS.zip" "SpongeBob by GM.app"
       - uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: build/macos/Build/Products/Release/SpongebobCleaner-macOS.zip
+          path: build/macos/Build/Products/Release/SpongeBob-by-GM-macOS.zip
 
   build-windows:
     runs-on: windows-2022
@@ -68,12 +68,12 @@ jobs:
 
       - name: Compress Windows Build
         shell: pwsh
-        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "SpongeBob-by-GM-Windows.zip"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: SpongebobCleaner-Windows.zip
+          path: "SpongeBob-by-GM-Windows.zip"
 
   release:
     needs: [build-macos, build-windows]
