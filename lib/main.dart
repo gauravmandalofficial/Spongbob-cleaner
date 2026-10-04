@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:exif/exif.dart';
 import 'metadata_processor.dart';
+import 'version.dart';
 
 void main() {
   runApp(const SpongeBobCleanerApp());
@@ -66,7 +67,7 @@ class _CleanerHomePageState extends State<CleanerHomePage> {
 
   static const _validExtensions = {'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'};
 
-void _addFiles(List<String> paths) {
+  void _addFiles(List<String> paths) {
     setState(() {
       for (final path in paths) {
         final file = File(path);
@@ -216,7 +217,7 @@ void _addFiles(List<String> paths) {
           outPath = p.join(targetDir, p.basename(_queue[i].path));
         }
 
-        final overwrite = outPath == _queue[i].path; // option 1: overwrite original
+        final overwrite = outPath == _queue[i].path;
         if (overwrite) {
           final tempFile = File('$outPath.tmp');
           await tempFile.writeAsBytes(cleanedBytes);
@@ -239,7 +240,6 @@ void _addFiles(List<String> paths) {
     });
   }
 
-  /// Show confirmation dialog before clearing the queue.
   Future<void> _confirmClearQueue() async {
     if (_queue.isNotEmpty) {
       final confirmed = await showDialog(
@@ -269,37 +269,38 @@ void _addFiles(List<String> paths) {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SpongeBob Cleaner'),
+        title: const Text('SpongeBob by GM'),
         backgroundColor: Colors.amber.shade300,
       ),
-      body: DropTarget(
-        onDragEntered: (detail) {
-          setState(() {
-            _isDragging = true;
-          });
-        },
-        onDragExited: (detail) {
-          setState(() {
-            _isDragging = false;
-          });
-        },
-        onDragDone: (detail) {
-          setState(() {
-            _isDragging = false;
-          });
-          _addFiles(detail.files.map((f) => f.path).toList());
-        },
-        child: Container(
-          color: _isDragging ? Colors.amber.withOpacity(0.1) : Colors.transparent,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Expanded(
+      body: Column(
+        children: [
+          Expanded(
+            child: DropTarget(
+              onDragEntered: (detail) {
+                setState(() {
+                  _isDragging = true;
+                });
+              },
+              onDragExited: (detail) {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              onDragDone: (detail) {
+                setState(() {
+                  _isDragging = false;
+                });
+                _addFiles(detail.files.map((f) => f.path).toList());
+              },
+              child: Container(
+                color: _isDragging ? Colors.amber.withOpacity(0.1) : Colors.transparent,
+                child: Row(
+                  children: [
+                    // Left Panel: File Queue
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(
@@ -338,7 +339,13 @@ void _addFiles(List<String> paths) {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text('File Queue (${_queue.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          Text(
+                                            'File Queue (${_queue.length})',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
                                           Row(
                                             children: [
                                               TextButton.icon(
@@ -376,16 +383,33 @@ void _addFiles(List<String> paths) {
                                           return ListTile(
                                             leading: const Icon(Icons.image),
                                             title: Text(item.name, overflow: TextOverflow.ellipsis),
-                                            subtitle: Text(item.path, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                            subtitle: Text(
+                                              item.path,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
                                             trailing: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Text(_formatSize(item.sizeBytes), style: const TextStyle(fontSize: 12)),
+                                                Text(
+                                                  _formatSize(item.sizeBytes),
+                                                  style: const TextStyle(fontSize: 12),
+                                                ),
                                                 const SizedBox(width: 8),
                                                 IconButton(
                                                   icon: const Icon(Icons.info_outline, size: 20),
                                                   tooltip: 'View Metadata',
                                                   onPressed: () => _showMetadataInspector(item.path),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                IconButton(
+                                                  icon: const Icon(Icons.close),
+                                                  tooltip: 'Remove from queue',
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _queue.removeAt(index);
+                                                    });
+                                                  },
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Container(
@@ -397,7 +421,11 @@ void _addFiles(List<String> paths) {
                                                   ),
                                                   child: Text(
                                                     item.status,
-                                                    style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                                    style: TextStyle(
+                                                      color: badgeColor,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -410,104 +438,151 @@ void _addFiles(List<String> paths) {
                                 ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: 350,
-                color: Colors.grey.shade100,
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Cleaning Options', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    CheckboxListTile(
-                      title: const Text('Strip EXIF / IPTC / TIFF'),
-                      value: _stripExif,
-                      onChanged: (val) => setState(() => _stripExif = val ?? true),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
                     ),
-                    CheckboxListTile(
-                      title: const Text('Strip GPS Coordinates'),
-                      value: _stripGps,
-                      onChanged: (val) => setState(() => _stripGps = val ?? true),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    CheckboxListTile(
-                      title: const Text('Strip Color Profiles'),
-                      value: _stripColorProfile,
-                      onChanged: (val) => setState(() => _stripColorProfile = val ?? true),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    const Divider(height: 32),
-                    const Text('Output Options', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    RadioListTile<int>(
-                      title: const Text('Append _clean'),
-                      value: 0,
-                      groupValue: _outputOption,
-                      onChanged: (val) => setState(() => _outputOption = val ?? 0),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    RadioListTile<int>(
-                      title: const Text('Overwrite original'),
-                      value: 1,
-                      groupValue: _outputOption,
-                      onChanged: (val) => setState(() => _outputOption = val ?? 1),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    RadioListTile<int>(
-                      title: const Text('Save to custom folder'),
-                      value: 2,
-                      groupValue: _outputOption,
-                      onChanged: (val) => setState(() => _outputOption = val ?? 2),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    if (_outputOption == 2) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _customFolderPath ?? 'No folder selected',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              overflow: TextOverflow.ellipsis,
+                    // Right Panel: Options & Actions
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Cleaning Options',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          ElevatedButton(
-                            onPressed: _pickCustomFolder,
-                            child: const Text('Browse'),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const Spacer(),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber.shade400,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                            const SizedBox(height: 16),
+                            CheckboxListTile(
+                              title: const Text('Strip EXIF / IPTC / TIFF'),
+                              value: _stripExif,
+                              onChanged: (val) {
+                                setState(() {
+                                  _stripExif = val ?? true;
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            CheckboxListTile(
+                              title: const Text('Strip GPS Coordinates'),
+                              value: _stripGps,
+                              onChanged: (val) {
+                                setState(() {
+                                  _stripGps = val ?? true;
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            CheckboxListTile(
+                              title: const Text('Strip Color Profiles'),
+                              value: _stripColorProfile,
+                              onChanged: (val) {
+                                setState(() {
+                                  _stripColorProfile = val ?? true;
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            const Divider(height: 32),
+                            const Text(
+                              'Output Options',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            RadioListTile<int>(
+                              title: const Text('Append _clean'),
+                              value: 0,
+                              groupValue: _outputOption,
+                              onChanged: (val) {
+                                setState(() {
+                                  _outputOption = val ?? 0;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            RadioListTile<int>(
+                              title: const Text('Overwrite original'),
+                              value: 1,
+                              groupValue: _outputOption,
+                              onChanged: (val) {
+                                setState(() {
+                                  _outputOption = val ?? 1;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            RadioListTile<int>(
+                              title: const Text('Save to custom folder'),
+                              value: 2,
+                              groupValue: _outputOption,
+                              onChanged: (val) {
+                                setState(() {
+                                  _outputOption = val ?? 2;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            if (_outputOption == 2) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _customFolderPath ?? 'No folder selected',
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: _pickCustomFolder,
+                                    child: const Text('Browse'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber.shade400,
+                                  foregroundColor: Colors.black87,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                onPressed: _isProcessing || _queue.isEmpty ? null : _processQueue,
+                                icon: _isProcessing
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.cleaning_services),
+                                label: Text(
+                                  _isProcessing ? 'Cleaning...' : 'Clean Files',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        onPressed: _isProcessing || _queue.isEmpty ? null : _processQueue,
-                        icon: _isProcessing
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.cleaning_services),
-                        label: Text(_isProcessing ? 'Cleaning...' : 'Clean Files', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          Container(
+            height: 24,
+            alignment: Alignment.center,
+            color: Colors.grey.shade200,
+            child: const Text(
+              'v$appVersion',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,7 @@
 name: spongebob_cleaner
 description: Cross-platform desktop app to strip EXIF, GPS, IPTC metadata from images.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 environment:
   sdk: '>=3.3.0 <4.0.0'
   flutter: '>=3.22.0'
