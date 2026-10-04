@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:metadata_cleaner/metadata_processor.dart';
+import 'package:spongebob_cleaner/metadata_processor.dart';
 import 'dart:typed_data';
 
 void main() {

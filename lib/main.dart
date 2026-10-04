@@ -275,7 +275,7 @@ void _addFiles(List<String> paths) {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Overwrite File'),
-        content: Text('Replace existing file: ${Basename(path)}?'),
+        content: Text('Replace existing file: ${p.basename(path)}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -331,7 +331,7 @@ void _addFiles(List<String> paths) {
                             border: Border.all(
                               color: _isDragging ? Colors.amber : Colors.grey.shade400,
                               width: 2,
-                              style: BorderStyle.dashed,
+                              style: BorderStyle.solid,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
