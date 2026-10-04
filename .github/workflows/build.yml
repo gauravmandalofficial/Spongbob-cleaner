@@ -36,21 +36,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Initialize Visual Studio 2022 command prompt and environment paths
-      - name: Initialize Visual Studio 2022 Environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      # 2. Setup Flutter
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
-      - name: Enable Windows Desktop
-        run: flutter config --enable-windows-desktop
+      - name: Configure Flutter Windows & Visual Studio 2022
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter config --visual-studio-dir "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
+          flutter doctor -v
 
-      # 3. Clean and recreate native Windows files
       - name: Setup Windows Project
         shell: pwsh
         run: |
@@ -60,12 +58,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Standard Flutter Windows Build
       - name: Build Windows
         shell: pwsh
         run: flutter build windows --release
 
-      # 5. Package output directory
       - name: Compress Windows Build
         shell: pwsh
         run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath SpongebobCleaner-Windows.zip
