@@ -58,10 +58,67 @@ class ImageMetadataProcessor {
           }
         }
       } else if (Platform.isWindows) {
-        // Windows: no native HEIC conversion tool available.
-        // Throw a recognizable exception so the caller can mark the file
-        // as unsupported instead of silently writing unchanged bytes.
-        throw Exception('HEIC not supported on Windows');
+        // Windows native WIC HEIC handling via PowerShell
+        final String sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+        final String inputPath = '${Directory.systemTemp.path}/input_$sessionId.heic';
+        final String tempJpg = '${Directory.systemTemp.path}/temp_$sessionId.jpg';
+
+        try {
+          await File(inputPath).writeAsBytes(fileBytes);
+
+          // PowerShell command using PresentationCore BitmapDecoder and JpegBitmapEncoder
+          final psScript = "Add-Type -AssemblyName PresentationCore; "
+              "try { "
+              "  \$src = [System.IO.Path]::GetFullPath('$inputPath'); "
+              "  \$decoder = [System.Windows.Media.Imaging.BitmapDecoder]::Create([Uri]\$src, 'None', 'OnLoad'); "
+              "  \$frame = \$decoder.Frames[0]; "
+              "  \$encoder = New-Object System.Windows.Media.Imaging.JpegBitmapEncoder; "
+              "  \$encoder.QualityLevel = 95; "
+              "  \$encoder.Frames.Add(\$frame); "
+              "  \$dst = [System.IO.Path]::GetFullPath('$tempJpg'); "
+              "  \$out = [System.IO.File]::Create(\$dst); "
+              "  \$encoder.Save(\$out); "
+              "  \$out.Close(); "
+              "  exit 0; "
+              "} catch { "
+              "  Write-Error \$_; "
+              "  exit 1; "
+              "}";
+
+          final res = await Process.run('powershell', [
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            psScript,
+          ]);
+
+          if (res.exitCode != 0) {
+            final err = res.stderr.toString().trim();
+            if (err.contains('No codec') || err.contains('BitmapDecoder') || err.contains('codec')) {
+              throw Exception('Install HEIF Extension from MS Store');
+            }
+            throw Exception('Windows HEIC processing failed: $err');
+          }
+
+          final jpgBytes = await File(tempJpg).readAsBytes();
+          final decoded = img.decodeJpg(jpgBytes);
+          if (decoded == null) {
+            throw Exception('Failed to decode processed JPG buffer');
+          }
+
+          decoded.exif = img.ExifData();
+          decoded.textData?.clear();
+
+          return img.encodeJpg(decoded, quality: 95);
+        } finally {
+          if (File(inputPath).existsSync()) {
+            await File(inputPath).delete();
+          }
+          if (File(tempJpg).existsSync()) {
+            await File(tempJpg).delete();
+          }
+        }
       }
 
       // Cross-platform fallback (Linux/other): try decode then JPG convert.
