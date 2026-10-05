@@ -17,20 +17,18 @@ class ImageMetadataProcessor {
 
     final ext = extension.toLowerCase();
 
-    // --- HEIC / HEIF handling via native macOS sips + BMP intermediary ---
+    // --- HEIC / HEIF handling ---
     if (ext == 'heic' || ext == 'heif') {
       if (Platform.isMacOS) {
-        // Use deterministic session-id temp files to prevent disk leaks
+        // macOS: use native sips to convert HEIC to BMP (no metadata container),
+        // guaranteeing 100% EXIF/GPS strip.
         final String sessionId = DateTime.now().millisecondsSinceEpoch.toString();
         final String inputPath = '${Directory.systemTemp.path}/input_$sessionId.heic';
         final String tempBmp = '${Directory.systemTemp.path}/temp_$sessionId.bmp';
 
         try {
-          // 1. Write incoming HEIC bytes to disk
           await File(inputPath).writeAsBytes(fileBytes);
 
-          // 2. Shell out to native macOS CoreImage (sips) to convert to BMP
-          // BMP has no metadata container, guaranteeing 100% EXIF/GPS strip
           final res = await Process.run('/usr/bin/sips', [
             '-s', 'format', 'bmp',
             inputPath,
@@ -41,24 +39,17 @@ class ImageMetadataProcessor {
             throw Exception('Native macOS HEIC decoding failed: ${res.stderr}');
           }
 
-          // 3. Read the inherently metadata-free BMP pixels
           final bmpBytes = await File(tempBmp).readAsBytes();
-
-          // 4. Decode into Dart Image
           final decoded = img.decodeBmp(bmpBytes);
           if (decoded == null) {
             throw Exception('Failed to decode BMP buffer');
           }
 
-          // 5. Hard purge of any residual memory structures (defense in depth)
           decoded.exif = img.ExifData();
           decoded.textData?.clear();
 
-          // 6. Output clean JPEG bytes
           return img.encodeJpg(decoded, quality: 95);
         } finally {
-          // 7. Deterministic Garbage Collection: Always clean up disk I/O
-          // This block runs even if sips crashes, BMP decode fails, or exceptions throw
           if (File(inputPath).existsSync()) {
             await File(inputPath).delete();
           }
@@ -66,10 +57,14 @@ class ImageMetadataProcessor {
             await File(tempBmp).delete();
           }
         }
+      } else if (Platform.isWindows) {
+        // Windows: no native HEIC conversion tool available.
+        // Throw a recognizable exception so the caller can mark the file
+        // as unsupported instead of silently writing unchanged bytes.
+        throw Exception('HEIC not supported on Windows');
       }
 
-      // Cross-platform fallback: Dart cannot losslessly strip HEIC;
-      // try decode then JPG convert
+      // Cross-platform fallback (Linux/other): try decode then JPG convert.
       img.Image? image = img.decodeImage(fileBytes);
       if (image == null) {
         print('FAILED to decode HEIC image.');
